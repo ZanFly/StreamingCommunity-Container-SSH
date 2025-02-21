@@ -31,7 +31,7 @@
 
 # 📋 Table of Contents
 
-- 🌐 [Website available](#website-status)
+- 🔄 [Update Domains](#update-domains)
 - 🛠️ [Installation](#installation)
     - 📦 [PyPI Installation](#1-pypi-installation)
     - 🔄 [Automatic Installation](#2-automatic-installation)
@@ -58,17 +58,14 @@
 # Installation
 
 <p align="center">
-  <a href="https://github.com/Arrowar/StreamingCommunity/releases/latest/download/StreamingCommunity_win.exe">
+  <a href="https://github.com/Arrowar/StreamingCommunity/releases/latest/download/StreamingCommunity_win.exe" style="margin: 0 20px;">
     <img src="https://img.shields.io/badge/-Windows-blue.svg?style=for-the-badge&logo=windows" alt="Windows">
   </a>
-  <a href="https://github.com/Arrowar/StreamingCommunity/releases/latest/download/StreamingCommunity_mac">
+  <a href="https://github.com/Arrowar/StreamingCommunity/releases/latest/download/StreamingCommunity_mac" style="margin: 0 20px;">
     <img src="https://img.shields.io/badge/-macOS-black.svg?style=for-the-badge&logo=apple" alt="macOS">
   </a>
-  <a href="https://github.com/Arrowar/StreamingCommunity/releases/latest/download/StreamingCommunity_linux">
+  <a href="https://github.com/Arrowar/StreamingCommunity/releases/latest/download/StreamingCommunity_linux" style="margin: 0 20px;">
     <img src="https://img.shields.io/badge/-Linux-orange.svg?style=for-the-badge&logo=linux" alt="Linux">
-  </a>
-  <a href="https://github.com/Arrowar/StreamingCommunity/releases">
-    <img src="https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge" alt="All Versions">
   </a>
 </p>
 
@@ -450,6 +447,40 @@ You can download VLC Media Player from the [official website](https://www.videol
 - `get_only_link`: Return M3U8 playlist/index URL instead of downloading
 
 
+## Update Domains
+
+There are two ways to update the domains for the supported websites:
+
+### 1. Using Local Configuration
+
+1. Create a `domains.json` file in the root directory of the project
+
+2. Add your domain configuration in the following format:
+   ```json
+   {
+      "altadefinizione": {
+          "domain": "si",
+          "full_url": "https://altadefinizione.si/"
+      },
+      ...
+   }
+   ```
+   
+3. Set `use_api` to `false` in the `DEFAULT` section of your `config.json`:
+   ```json
+   {
+      "DEFAULT": {
+         "use_api": false
+      }
+   }
+   ```
+
+### 2. Using API (Legacy)
+
+The API-based domain updates are currently deprecated. To use it anyway, set `use_api` to `true` in your `config.json` file.
+
+Note: If `use_api` is set to `false` and no `domains.json` file is found, the script will raise an error.
+
 # COMMAND
 
 - Download a specific season by entering its number.
@@ -558,21 +589,6 @@ Start the bot from the folder /StreamingCommunity/TelegramHelp
 ```bash
 python3 telegram_bot.py
 ```
-
-# Website Status
-
-| Website            | Status | Command |
-|:-------------------|:------:|:--------:|
-| [1337xx](https://1337xx.to/) |   ✅   | -133 |
-| [AltadefinizioneGratis](https://altadefinizionegratis.pro/) |   ✅   | -ALT |
-| [AnimeUnity](https://animeunity.so/) |   ✅   | -ANI |
-| [Ilcorsaronero](https://ilcorsaronero.link/) | ✅ | `-ILC` |
-| [CB01New](https://cb01new.gold/) |   ✅   | -CB0 |
-| [DDLStreamItaly](https://ddlstreamitaly.co/) |   ✅   | -DDL |
-| [GuardaSerie](https://guardaserie.now/) |   ✅   | -GUA |
-| [MostraGuarda](https://mostraguarda.stream/) |   ✅   | -MOS |
-| [StreamingCommunity](https://streamingcommunity.paris/) |   ✅   | -STR |
-
 
 # Tutorials
 

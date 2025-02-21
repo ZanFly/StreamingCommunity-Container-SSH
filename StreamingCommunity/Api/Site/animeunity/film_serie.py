@@ -85,6 +85,7 @@ def download_episode(index_select: int, scrape_serie: ScrapeSerieAnime, video_so
 
     else:
         logging.error(f"Skip index: {index_select} cant find info with api.")
+        return None, True
 
 
 def download_series(select_title: MediaItem):
@@ -100,8 +101,8 @@ def download_series(select_title: MediaItem):
     if site_constant.TELEGRAM_BOT:
         bot = get_bot_instance()
 
-    scrape_serie = ScrapeSerieAnime(site_constant.SITE_NAME)
-    video_source = VideoSourceAnime(site_constant.SITE_NAME)
+    scrape_serie = ScrapeSerieAnime(site_constant.FULL_URL)
+    video_source = VideoSourceAnime(site_constant.FULL_URL)
 
     # Set up video source
     scrape_serie.setup(None, select_title.id, select_title.slug)
@@ -111,19 +112,19 @@ def download_series(select_title: MediaItem):
     console.print(f"[cyan]Episodes find: [red]{episoded_count}")
 
     if site_constant.TELEGRAM_BOT:
-        console.print(f"\n[cyan]Insert media [red]index [yellow]or [red](*) [cyan]to download all media [yellow]or [red][1-2] [cyan]or [red][3-*] [cyan]for a range of media")
+        console.print(f"\n[cyan]Insert media [red]index [yellow]or [red]* [cyan]to download all media [yellow]or [red]1-2 [cyan]or [red]3-* [cyan]for a range of media")
         bot.send_message(f"Episodi trovati: {episoded_count}", None)
 
         last_command = bot.ask(
             "select_title",
-            f"Inserisci l'indice del media o (*) per scaricare tutti i media, oppure [1-2] o [3-*] per un intervallo di media.",
+            f"Inserisci l'indice del media o * per scaricare tutti i media, oppure 1-2 o 3-* per un intervallo di media.",
             None
         )
 
     else:
 
         # Prompt user to select an episode index
-        last_command = msg.ask("\n[cyan]Insert media [red]index [yellow]or [red](*) [cyan]to download all media [yellow]or [red][1-2] [cyan]or [red][3-*] [cyan]for a range of media")
+        last_command = msg.ask("\n[cyan]Insert media [red]index [yellow]or [red]* [cyan]to download all media [yellow]or [red]1-2 [cyan]or [red]3-* [cyan]for a range of media")
 
     # Manage user selection
     list_episode_select = manage_selection(last_command, episoded_count)
@@ -160,8 +161,8 @@ def download_film(select_title: MediaItem):
     """
 
     # Init class
-    scrape_serie = ScrapeSerieAnime(site_constant.SITE_NAME)
-    video_source = VideoSourceAnime(site_constant.SITE_NAME)
+    scrape_serie = ScrapeSerieAnime(site_constant.FULL_URL)
+    video_source = VideoSourceAnime(site_constant.FULL_URL)
 
     # Set up video source
     scrape_serie.setup(None, select_title.id, select_title.slug)
