@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 # Internal utilities
 from StreamingCommunity.Util.console import console
 from StreamingCommunity.Util._jsonConfig import config_manager
-from StreamingCommunity.Util.headers import get_headers
+from StreamingCommunity.Util.headers import get_userAgent
 from StreamingCommunity.Util.table import TVShowManager
 
 
@@ -47,18 +47,15 @@ def title_search(word_to_search: str) -> int:
         domain_to_use, base_url = search_domain(site_constant.SITE_NAME, site_constant.FULL_URL)
 
     if domain_to_use is None or base_url is None:
-        console.print("[bold red]❌ Error: Unable to determine valid domain or base URL.[/bold red]")
+        console.log("[bold red]Error: Unable to determine valid domain or base URL.[/bold red]")
         console.print("[yellow]The service might be temporarily unavailable or the domain may have changed.[/yellow]")
         sys.exit(1)
 
-    # Construct the full site URL and load the search page
+    search_url = f"{site_constant.FULL_URL}/search/{word_to_search}/1/"
+    console.print(f"[cyan]Search url: [yellow]{search_url}")
+
     try:
-        response = httpx.get(
-            url=f"{site_constant.FULL_URL}/search/{word_to_search}/1/", 
-            headers={'user-agent': get_headers()}, 
-            follow_redirects=True,
-            timeout=max_timeout
-        )
+        response = httpx.get(search_url, headers={'user-agent': get_userAgent()}, timeout=max_timeout, follow_redirects=True)
         response.raise_for_status()
 
     except Exception as e:

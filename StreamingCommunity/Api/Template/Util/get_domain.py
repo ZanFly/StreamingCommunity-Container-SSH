@@ -14,21 +14,9 @@ from StreamingCommunity.Util.headers import get_headers
 from StreamingCommunity.Util.console import console
 from StreamingCommunity.Util._jsonConfig import config_manager
 
-base_headers = {
-    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'accept-language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
-    'dnt': '1',
-    'priority': 'u=0, i',
-    'referer': '',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'same-origin',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
-    'user-agent': ''
-}
+
+# Variable
+VERIFY = config_manager.get("REQUESTS", "verify")
 
 
 def get_tld(url_str):
@@ -82,9 +70,6 @@ def validate_url(url, base_url, max_timeout, max_retries=2, sleep=1):
     base_domain = get_base_domain(base_url)
     url_domain = get_base_domain(url)
 
-    base_headers['referer'] = url
-    base_headers['user-agent'] = get_headers()
-    
     if base_domain != url_domain:
         console.print(f"[red]Domain structure mismatch: {url_domain} != {base_domain}")
         return False, None
@@ -97,8 +82,8 @@ def validate_url(url, base_url, max_timeout, max_retries=2, sleep=1):
         return False, None
 
     client = httpx.Client(
-        verify=False,
-        headers=base_headers,
+        verify=VERIFY,
+        headers=get_headers(),
         timeout=max_timeout
     )
 
@@ -116,22 +101,9 @@ def validate_url(url, base_url, max_timeout, max_retries=2, sleep=1):
                 console.print(f"[red]Check failed: HTTP {response.status_code}")
                 return False, None
                 
-            # Follow redirects and verify final domain
-            final_response = client.get(url, follow_redirects=True)
-            final_domain = get_base_domain(str(final_response.url))
-            console.print(f"[cyan]Redirect url: [red]{final_response.url}")
-            
-            if final_domain != base_domain:
-                console.print(f"[red]Final domain mismatch: {final_domain} != {base_domain}")
-                return False, None
-                
-            new_tld = get_tld(str(final_response.url))
-            if new_tld != get_tld(url):
-                return True, new_tld
-                
             return True, None
             
-        except (httpx.RequestError, ssl.SSLError) as e:
+        except Exception as e:
             console.print(f"[red]Connection error: {str(e)}")
             time.sleep(sleep)
             continue
@@ -149,7 +121,7 @@ def search_domain(site_name: str, base_url: str, get_first: bool = False):
             tld = redirect_tld or get_tld(base_url)
             config_manager.configSite[site_name]['domain'] = tld
 
-            console.print(f"[green]Successfully validated initial URL")
+            #console.print(f"[green]Successfully validated initial URL")
             return tld, base_url
         
         else:

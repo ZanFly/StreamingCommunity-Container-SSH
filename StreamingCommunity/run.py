@@ -33,19 +33,20 @@ TELEGRAM_BOT = config_manager.get_bool('DEFAULT', 'telegram_bot')
 
 
 
-def run_function(func: Callable[..., None], close_console: bool = False) -> None:
+def run_function(func: Callable[..., None], close_console: bool = False, search_terms: str = None) -> None:
     """
     Run a given function indefinitely or once, depending on the value of close_console.
 
     Parameters:
         func (Callable[..., None]): The function to run.
         close_console (bool, optional): Whether to close the console after running the function once. Defaults to False.
+        search_terms (str, optional): Search terms to use for the function. Defaults to None.
     """
     if close_console:
         while 1:
-            func()
+            func(search_terms)
     else:
-        func()
+        func(search_terms)
 
 
 def load_search_functions():
@@ -148,7 +149,7 @@ def initialize():
 
 def restart_script():
     """Riavvia lo script con gli stessi argomenti della riga di comando."""
-    print("\n🔄 Riavvio dello script...\n")
+    print("\nRiavvio dello script...\n")
     python = sys.executable
     os.execv(python, [python] + sys.argv)
 
@@ -156,31 +157,31 @@ def restart_script():
 def force_exit():
     """Forza la chiusura dello script in qualsiasi contesto."""
 
-    print("\n🛑 Chiusura dello script in corso...")
+    print("\nChiusura dello script in corso...")
 
-    # 1️⃣ Chiudi tutti i thread tranne il principale
+    # 1 Chiudi tutti i thread tranne il principale
     for t in threading.enumerate():
         if t is not threading.main_thread():
-            print(f"🔄 Chiusura thread: {t.name}")
+            print(f"Chiusura thread: {t.name}")
             t.join(timeout=1)
 
-    # 2️⃣ Ferma asyncio, se attivo
+    # 2 Ferma asyncio, se attivo
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            print("⚡ Arresto del loop asyncio...")
+            print("Arresto del loop asyncio...")
             loop.stop()
     except RuntimeError:
         pass
 
-    # 3️⃣ Esce con sys.exit(), se fallisce usa os._exit()
+    # 3 Esce con sys.exit(), se fallisce usa os._exit()
     try:
-        print("✅ Uscita con sys.exit(0)")
+        print("Uscita con sys.exit(0)")
         sys.exit(0)
     except SystemExit:
         pass
 
-    print("🚨 Uscita forzata con os._exit(0)")
+    print("Uscita forzata con os._exit(0)")
     os._exit(0)
 
 
@@ -188,7 +189,7 @@ def main(script_id = 0):
 
     if TELEGRAM_BOT:
         bot = get_bot_instance()
-        bot.send_message(f"🏁 Avviato script {script_id}", None)
+        bot.send_message(f"Avviato script {script_id}", None)
 
     start = time.time()
 
@@ -249,9 +250,11 @@ def main(script_id = 0):
         long_option = alias
         parser.add_argument(f'-{short_option}', f'--{long_option}', action='store_true', help=f'Search for {alias.split("_")[0]} on streaming platforms.')
 
+    parser.add_argument('-s', '--search', default=None, help='Search terms')
     # Parse command-line arguments
     args = parser.parse_args()
 
+    search_terms = args.search
     # Map command-line arguments to the config values
     config_updates = {}
 
@@ -283,7 +286,7 @@ def main(script_id = 0):
     # Check which argument is provided and run the corresponding function
     for arg, func in arg_to_function.items():
         if getattr(args, arg):
-            run_function(func)
+            run_function(func, search_terms=search_terms)
             return
 
     # Mapping user input to functions
@@ -302,24 +305,15 @@ def main(script_id = 0):
     ) + "[white])"
 
     if TELEGRAM_BOT:
-
-        # Mappa delle emoji per i colori
-        emoji_map = {
-            "yellow": "🟡",  # Giallo
-            "red": "🔴",     # Rosso
-            "blue": "🔵",    # Blu
-            "green": "🟢"    # Verde
-        }
-
+        
         # Display the category legend in a single line
         category_legend_str = "Categorie: \n" + " | ".join([
-            f"{emoji_map.get(color, '⚪')} {category.capitalize()}"
-            for category, color in color_map.items()
+            f"{category.capitalize()}" for category in color_map.keys()
         ])
 
-        # Costruisci il messaggio con le emoji al posto dei colori
+        # Costruisci il messaggio senza emoji
         prompt_message = "Inserisci il sito:\n" + "\n".join(
-            [f"{key}: {emoji_map[color_map[label[1]]]} {label[0]}" for key, label in choice_labels.items()]
+            [f"{key}: {label[0]}" for key, label in choice_labels.items()]
         )
 
         console.print(f"\n{prompt_message}")
@@ -336,7 +330,8 @@ def main(script_id = 0):
 
     # Run the corresponding function based on user input
     if category in input_to_function:
-        run_function(input_to_function[category])
+        run_function(input_to_function[category], search_terms = args.search)
+        
     else:
 
         if TELEGRAM_BOT:

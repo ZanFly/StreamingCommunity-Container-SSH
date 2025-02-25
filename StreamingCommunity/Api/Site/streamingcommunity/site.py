@@ -10,7 +10,7 @@ import httpx
 # Internal utilities
 from StreamingCommunity.Util.console import console
 from StreamingCommunity.Util._jsonConfig import config_manager
-from StreamingCommunity.Util.headers import get_headers
+from StreamingCommunity.Util.headers import get_userAgent
 from StreamingCommunity.Util.table import TVShowManager
 from StreamingCommunity.TelegramHelp.telegram_bot import get_bot_instance
 
@@ -45,7 +45,7 @@ def title_search(title_search: str) -> int:
         domain_to_use, base_url = search_domain(site_constant.SITE_NAME, site_constant.FULL_URL)
 
     if domain_to_use is None or base_url is None:
-        console.print("[bold red]❌ Error: Unable to determine valid domain or base URL.[/bold red]")
+        console.print("[bold red]Error: Unable to determine valid domain or base URL.[/bold red]")
         console.print("[yellow]The service might be temporarily unavailable or the domain may have changed.[/yellow]")
         sys.exit(1)
 
@@ -54,13 +54,12 @@ def title_search(title_search: str) -> int:
 
     media_search_manager.clear()
     table_show_manager.clear()
-    
+
+    search_url = f"{site_constant.FULL_URL}/api/search?q={title_search}"
+    console.print(f"[cyan]Search url: [yellow]{search_url}")
+
     try:
-        response = httpx.get(
-            url=f"{site_constant.FULL_URL}/api/search?q={title_search.replace(' ', '+')}", 
-            headers={'user-agent': get_headers()}, 
-            timeout=max_timeout
-        )
+        response = httpx.get(search_url, headers={'user-agent': get_userAgent()}, timeout=max_timeout, follow_redirects=True)
         response.raise_for_status()
 
     except Exception as e:
