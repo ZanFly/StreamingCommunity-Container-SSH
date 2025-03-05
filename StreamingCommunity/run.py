@@ -12,17 +12,18 @@ import threading, asyncio
 from typing import Callable
 
 
+# External library
+from rich.console import Console
+from rich.prompt import Prompt
+
+
 # Internal utilities
 from StreamingCommunity.Util.message import start_message
-from StreamingCommunity.Util.console import console, msg
-from StreamingCommunity.Util._jsonConfig import config_manager
+from StreamingCommunity.Util.config_json import config_manager
 from StreamingCommunity.Util.os import os_summary
 from StreamingCommunity.Util.logger import Logger
 from StreamingCommunity.Upload.update import update as git_update
 from StreamingCommunity.Lib.TMBD import tmdb
-
-
-# Telegram util
 from StreamingCommunity.TelegramHelp.telegram_bot import get_bot_instance, TelegramSession
 
 
@@ -31,6 +32,10 @@ SHOW_TRENDING = config_manager.get_bool('DEFAULT', 'show_trending')
 CLOSE_CONSOLE = config_manager.get_bool('DEFAULT', 'not_close')
 TELEGRAM_BOT = config_manager.get_bool('DEFAULT', 'telegram_bot')
 
+
+# Variable
+console = Console()
+msg = Prompt()
 
 
 def run_function(func: Callable[..., None], close_console: bool = False, search_terms: str = None) -> None:
@@ -213,9 +218,6 @@ def main(script_id = 0):
         '--add_siteName', type=bool, help='Enable or disable adding the site name to the file name (e.g., true/false).'
     )
     parser.add_argument(
-        '--disable_searchDomain', type=bool, help='Enable or disable searching in configured domains (e.g., true/false).'
-    )
-    parser.add_argument(
         '--not_close', type=bool, help='If set to true, the script will not close the console after execution (e.g., true/false).'
     )
 
@@ -260,8 +262,6 @@ def main(script_id = 0):
 
     if args.add_siteName is not None:
         config_updates['DEFAULT.add_siteName'] = args.add_siteName
-    if args.disable_searchDomain is not None:
-        config_updates['DEFAULT.disable_searchDomain'] = args.disable_searchDomain
     if args.not_close is not None:
         config_updates['DEFAULT.not_close'] = args.not_close
     if args.default_video_worker is not None:

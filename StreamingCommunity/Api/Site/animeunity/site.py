@@ -7,11 +7,11 @@ import logging
 # External libraries
 import httpx
 from bs4 import BeautifulSoup
+from rich.console import Console
 
 
 # Internal utilities
-from StreamingCommunity.Util.console import console
-from StreamingCommunity.Util._jsonConfig import config_manager
+from StreamingCommunity.Util.config_json import config_manager
 from StreamingCommunity.Util.table import TVShowManager
 from StreamingCommunity.TelegramHelp.telegram_bot import get_bot_instance
 
@@ -23,10 +23,10 @@ from StreamingCommunity.Api.Template.Class.SearchType import MediaManager
 
 
 # Variable
+console = Console()
 media_search_manager = MediaManager()
 table_show_manager = TVShowManager()
 max_timeout = config_manager.get_int("REQUESTS", "timeout")
-disable_searchDomain = config_manager.get_bool("DEFAULT", "disable_searchDomain")
 
 
 def get_token(site_name: str, domain: str) -> dict:
@@ -110,11 +110,8 @@ def title_search(title: str) -> int:
     media_search_manager.clear()
     table_show_manager.clear()
 
-    # Get token and session value from configuration
-    domain_to_use = site_constant.DOMAIN_NOW
-    
-    if not disable_searchDomain:
-        domain_to_use, base_url = search_domain(site_constant.SITE_NAME, site_constant.FULL_URL)
+    # Check if domain is working
+    domain_to_use, base_url = search_domain(site_constant.FULL_URL)
 
     if domain_to_use is None or base_url is None:
         console.print("[bold red]Error: Unable to determine valid domain or base URL.[/bold red]")

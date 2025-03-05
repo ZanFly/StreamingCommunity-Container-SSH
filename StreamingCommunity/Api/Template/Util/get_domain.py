@@ -1,22 +1,23 @@
 # 18.06.24
 
-import ssl
-import time
+import certifi
 from urllib.parse import urlparse, unquote
 
 
 # External libraries
 import httpx
+from rich.console import Console
 
 
 # Internal utilities
 from StreamingCommunity.Util.headers import get_headers
-from StreamingCommunity.Util.console import console
-from StreamingCommunity.Util._jsonConfig import config_manager
+from StreamingCommunity.Util.config_json import config_manager
 
 
 # Variable
+console = Console()
 VERIFY = config_manager.get("REQUESTS", "verify")
+MAX_TIMEOUT = config_manager.get_int("REQUESTS", "timeout")
 
 
 def get_tld(url_str):
@@ -53,16 +54,7 @@ def get_base_domain(url_str):
     except Exception:
         return None
     
-def get_base_url(url_str):
-    """Extract base URL including protocol and domain, removing path and query parameters."""
-    try:
-        parsed = urlparse(url_str)
-        return f"{parsed.scheme}://{parsed.netloc}"
-    
-    except Exception:
-        return None
-
-def validate_url(url, base_url, max_timeout, max_retries=2, sleep=1):
+def validate_url(url, base_url):
     """Validate if URL is accessible and matches expected base domain."""
     console.print(f"\n[cyan]Starting validation for URL[white]: [yellow]{url}")
     
@@ -74,54 +66,30 @@ def validate_url(url, base_url, max_timeout, max_retries=2, sleep=1):
         console.print(f"[red]Domain structure mismatch: {url_domain} != {base_domain}")
         return False, None
     
-    # Count dots to ensure we don't have extra subdomains
-    base_dots = base_url.count('.')
-    url_dots = url.count('.')
-    if url_dots > base_dots + 1:
-        console.print(f"[red]Too many subdomains in URL")
-        return False, None
-
     client = httpx.Client(
-        verify=VERIFY,
+        http1=True,
+        verify=certifi.where(),
         headers=get_headers(),
-        timeout=max_timeout
+        timeout=MAX_TIMEOUT
     )
 
-    for retry in range(max_retries):
-        try:
-            time.sleep(sleep)
-            
-            # Initial check without redirects
-            response = client.get(url, follow_redirects=False)
-            if response.status_code == 403:
-                console.print(f"[red]Check failed (403) - Attempt {retry + 1}/{max_retries}")
-                continue
-                
-            if response.status_code >= 400:
-                console.print(f"[red]Check failed: HTTP {response.status_code}")
-                return False, None
-                
-            return True, None
-            
-        except Exception as e:
-            console.print(f"[red]Connection error: {str(e)}")
-            time.sleep(sleep)
-            continue
-            
-    return False, None
+    # Make request to web site
+    response = client.get(url, follow_redirects=False)
+        
+    if response.status_code >= 400:
+        console.print(f"[red]Check failed: HTTP {response.status_code}")
+        console.print(f"[red]Response content: {response.text}")
+        return False, None
+        
+    return True, base_domain
 
-def search_domain(site_name: str, base_url: str, get_first: bool = False):
-    """Search for valid domain matching site name and base URL."""
-    max_timeout = config_manager.get_int("REQUESTS", "timeout")
-    
+def search_domain(base_url: str):
+    """Search for valid domain matching site name and base URL."""    
     try:
-        is_correct, redirect_tld = validate_url(base_url, base_url, max_timeout)
+        is_correct, redirect_tld = validate_url(base_url, base_url)
 
         if is_correct:
             tld = redirect_tld or get_tld(base_url)
-            config_manager.configSite[site_name]['domain'] = tld
-
-            #console.print(f"[green]Successfully validated initial URL")
             return tld, base_url
         
         else:
@@ -129,3 +97,4 @@ def search_domain(site_name: str, base_url: str, get_first: bool = False):
         
     except Exception as e:
         console.print(f"[red]Error testing initial URL: {str(e)}")
+        return None, None

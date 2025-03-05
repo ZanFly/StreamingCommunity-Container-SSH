@@ -5,15 +5,21 @@ import logging
 from typing import List
 
 
+# External library
+from rich.console import Console
+from rich.prompt import Prompt
+
+
 # Internal utilities
-from StreamingCommunity.Util.console import console, msg
 from StreamingCommunity.Util.os import os_manager
-from StreamingCommunity.Util._jsonConfig import config_manager
+from StreamingCommunity.Util.config_json import config_manager
 from StreamingCommunity.Util.table import TVShowManager
 
 
-# Config
-MAP_EPISODE = config_manager.get('DEFAULT', 'map_episode_name')
+# Variable
+msg = Prompt()
+console = Console()
+MAP_EPISODE = config_manager.get('OUT_FOLDER', 'map_episode_name')
 
 
 def dynamic_format_number(n: int) -> str:
@@ -195,7 +201,6 @@ def display_episodes_list(episodes_manager) -> str:
     """
     # Set up table for displaying episodes
     table_show_manager = TVShowManager()
-    table_show_manager.set_slice_end(10)
 
     # Add columns to the table
     column_info = {

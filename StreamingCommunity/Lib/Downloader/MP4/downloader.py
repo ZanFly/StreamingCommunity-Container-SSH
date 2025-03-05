@@ -12,13 +12,15 @@ from functools import partial
 # External libraries
 import httpx
 from tqdm import tqdm
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.panel import Panel
 
 
 # Internal utilities
 from StreamingCommunity.Util.headers import get_userAgent
 from StreamingCommunity.Util.color import Colors
-from StreamingCommunity.Util.console import console, Panel
-from StreamingCommunity.Util._jsonConfig import config_manager
+from StreamingCommunity.Util.config_json import config_manager
 from StreamingCommunity.Util.os import internet_manager
 from StreamingCommunity.TelegramHelp.telegram_bot import get_bot_instance
 
@@ -33,6 +35,10 @@ GET_ONLY_LINK = config_manager.get_bool('M3U8_PARSER', 'get_only_link')
 REQUEST_TIMEOUT = config_manager.get_float('REQUESTS', 'timeout')
 TELEGRAM_BOT = config_manager.get_bool('DEFAULT', 'telegram_bot')
 
+
+# Variable
+msg = Prompt()
+console = Console()
 
 
 class InterruptHandler:
@@ -78,7 +84,7 @@ def MP4_downloader(url: str, path: str, referer: str = None, headers_: dict = No
         console.log("[red]Output file already exists.")
         if TELEGRAM_BOT:
             bot.send_message(f"Contenuto già scaricato!", None)
-        return 400
+        return None, False
 
     if GET_ONLY_LINK:
         return {'path': path, 'url': url}
@@ -86,23 +92,19 @@ def MP4_downloader(url: str, path: str, referer: str = None, headers_: dict = No
     if not (url.lower().startswith('http://') or url.lower().startswith('https://')):
         logging.error(f"Invalid URL: {url}")
         console.print(f"[bold red]Invalid URL: {url}[/bold red]")
-        return None
+        return None, False
 
-    try:
-        headers = {}
-        if referer:
-            headers['Referer'] = referer
-        
-        if headers_:
-            headers.update(headers_)
-        else:
-            headers['User-Agent'] = get_userAgent()
-
-    except Exception as header_err:
-        logging.error(f"Error preparing headers: {header_err}")
-        console.print(f"[bold red]Error preparing headers: {header_err}[/bold red]")
-        return None
+    # Set headers
+    headers = {}
+    if referer:
+        headers['Referer'] = referer
     
+    if headers_:
+        headers.update(headers_)
+    else:
+        headers['User-Agent'] = get_userAgent()
+
+    # Set interrupt handler
     temp_path = f"{path}.temp"
     interrupt_handler = InterruptHandler()
     original_handler = signal.signal(signal.SIGINT, partial(signal_handler, interrupt_handler=interrupt_handler, original_handler=signal.getsignal(signal.SIGINT)))
@@ -117,7 +119,7 @@ def MP4_downloader(url: str, path: str, referer: str = None, headers_: dict = No
                 
                 if total == 0:
                     console.print("[bold red]No video stream found.[/bold red]")
-                    return None
+                    return None, False
 
                 progress_bar = tqdm(
                     total=total,

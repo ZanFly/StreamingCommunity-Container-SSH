@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 
 # Internal utilities
 from StreamingCommunity.Util.headers import get_userAgent
-from StreamingCommunity.Util._jsonConfig import config_manager
+from StreamingCommunity.Util.config_json import config_manager
 from StreamingCommunity.Api.Player.Helper.Vixcloud.util import Season, EpisodeManager
 
 
@@ -19,7 +19,7 @@ from StreamingCommunity.Api.Player.Helper.Vixcloud.util import Season, EpisodeMa
 max_timeout = config_manager.get_int("REQUESTS", "timeout")
 
 
-class ScrapeSerie:
+class GetSerieInfo:
     def __init__(self, url):
         """
         Initialize the ScrapeSerie class for scraping TV series information.
