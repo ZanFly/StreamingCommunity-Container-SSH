@@ -37,7 +37,7 @@ from ...M3U8 import (
 # Config
 TQDM_DELAY_WORKER = config_manager.get_float('M3U8_DOWNLOAD', 'tqdm_delay')
 REQUEST_MAX_RETRY = config_manager.get_int('REQUESTS', 'max_retry')
-REQUEST_VERIFY = config_manager.get_int('REQUESTS', 'verify')
+REQUEST_VERIFY = config_manager.get_bool('REQUESTS', 'verify')
 DEFAULT_VIDEO_WORKERS = config_manager.get_int('M3U8_DOWNLOAD', 'default_video_workser')
 DEFAULT_AUDIO_WORKERS = config_manager.get_int('M3U8_DOWNLOAD', 'default_audio_workser')
 MAX_TIMEOOUT = config_manager.get_int("REQUESTS", "timeout")
@@ -223,14 +223,12 @@ class M3U8_Segments:
             
             try:
                 with self._get_http_client() as client:
-                    start_time = time.time()
                     response = client.get(ts_url)
         
                     # Validate response and content
                     response.raise_for_status()
                     segment_content = response.content
                     content_size = len(segment_content)
-                    duration = time.time() - start_time
 
                     # Decrypt if needed and verify decrypted content
                     if self.decryption is not None:
@@ -243,7 +241,7 @@ class M3U8_Segments:
                             self.stop_event.set()       # Trigger the stopping event for all threads
                             break                       # Stop the current task immediately
 
-                    self.class_ts_estimator.update_progress_bar(content_size, duration, progress_bar)
+                    self.class_ts_estimator.update_progress_bar(content_size, progress_bar)
                     self.queue.put((index, segment_content))
                     self.downloaded_segments.add(index)  
                     progress_bar.update(1)

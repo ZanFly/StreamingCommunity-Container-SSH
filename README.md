@@ -45,6 +45,7 @@
     - 📥 [Download](#m3u8_download-settings)
     - 🔍 [Parser](#m3u8_parser-settings)
 - 📝 [Command](#command)
+- 🔍 [Global search](#global-search)
 - 💻 [Examples of terminal](#examples-of-terminal-usage)
 - 🔧 [Manual domain configuration](#update-domains)
 - 🐳 [Docker](#docker)
@@ -79,9 +80,15 @@ Install directly from PyPI:
 pip install StreamingCommunity
 ```
 
-### Creating a Run Script
+Update to the latest version:
 
-Create `run_streaming.py`:
+```bash
+pip install --upgrade StreamingCommunity
+```
+
+## Quick Start
+
+Create a simple script (`run_streaming.py`) to launch the main application:
 
 ```python
 from StreamingCommunity.run import main
@@ -91,15 +98,81 @@ if __name__ == "__main__":
 ```
 
 Run the script:
+
 ```bash
 python run_streaming.py
 ```
 
-### Updating via PyPI
+## Modules
 
-```bash
-pip install --upgrade StreamingCommunity
+### HLS Downloader
+
+Download HTTP Live Streaming (HLS) content from m3u8 URLs.
+
+```python
+from StreamingCommunity.Download import HLS_Downloader
+
+# Initialize with m3u8 URL and optional output path
+downloader = HLS_Downloader(
+    m3u8_url="https://example.com/stream.m3u8",
+    output_path="/downloads/video.mp4"  # Optional
+)
+
+# Start the download
+downloader.download()
 ```
+
+See [HLS example](./Test/Download/HLS.py) for complete usage.
+
+### MP4 Downloader
+
+Direct MP4 file downloader with support for custom headers and referrer.
+
+```python
+from StreamingCommunity.Download import MP4_downloader
+
+# Basic usage
+downloader = MP4_downloader(
+    url="https://example.com/video.mp4",
+    path="/downloads/saved_video.mp4"
+)
+
+# Advanced usage with custom headers and referrer
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+}
+downloader = MP4_downloader(
+    url="https://example.com/video.mp4",
+    path="/downloads/saved_video.mp4",
+    referer="https://example.com",
+    headers_=headers
+)
+
+# Start download
+downloader.download()
+```
+
+See [MP4 example](./Test/Download/MP4.py) for complete usage.
+
+### Torrent Client
+
+Download content via torrent magnet links.
+
+```python
+from StreamingCommunity.Download import TOR_downloader
+
+# Initialize torrent client
+client = TOR_downloader()
+
+# Add magnet link
+client.add_magnet_link("magnet:?xt=urn:btih:example_hash&dn=example_name", save_path=".")
+
+# Start download
+client.start_download()
+```
+
+See [Torrent example](./Test/Download/TOR.py) for complete usage.
+
 
 ## 2. Automatic Installation
 
@@ -559,19 +632,44 @@ The API-based domain updates are currently deprecated. To use it anyway, set `us
 
 Note: If `use_api` is set to `false` and no `domains.json` file is found, the script will raise an error.
 
-# COMMAND
+#### 💡 Adding a New Site to the Legacy API
+If you want to add a new site to the legacy API, just message me on the Discord server, and I'll add it!
 
-- Download a specific season by entering its number.
-  *  **Example:** `1` will download *Season 1* only.
+# Global Search
 
--  Use the wildcard `*` to download every available season.
-   * **Example:** `*` will download all seasons in the series.
+You can now search across multiple streaming sites at once using the Global Search feature. This allows you to find content more efficiently without having to search each site individually.
 
-- Specify a range of seasons using a hyphen `-`.
-   * **Example:** `1-2` will download *Seasons 1 and 2*.
+## Using Global Search
 
-- Enter a season number followed by `-*` to download from that season to the end.
-  * **Example:** `3-*` will download from *Season 3* to the final season.
+The Global Search feature provides a unified interface to search across all supported sites:
+
+## Search Options
+
+When using Global Search, you have three ways to select which sites to search:
+
+1. **Search all sites** - Searches across all available streaming sites
+2. **Search by category** - Group sites by their categories (movies, series, anime, etc.)
+3. **Select specific sites** - Choose individual sites to include in your search
+
+## Navigation and Selection
+
+After performing a search:
+
+1. Results are displayed in a consolidated table showing:
+   - Title
+   - Media type (movie, TV series, etc.)
+   - Source site
+
+2. Select an item by number to view details or download
+
+3. The system will automatically use the appropriate site's API to handle the download
+
+## Command Line Arguments
+
+The Global Search can be configured from the command line:
+
+- `--global` - Perform a global search across multiple sites.
+- `-s`, `--search` - Specify the search terms.
 
 # Examples of terminal usage
 
@@ -584,6 +682,9 @@ python test_run.py --specific_list_audio ita,eng --specific_list_subtitles eng,s
 
 # Keep console open after download
 python test_run.py --not_close true
+
+# Use global search
+python test_run.py --global -s "cars"
 ```
 
 # Docker

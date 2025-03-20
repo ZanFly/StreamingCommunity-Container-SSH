@@ -1,10 +1,9 @@
-# 10.12.23
-
-import sys
+# 16.03.25
 
 
 # External libraries
 import httpx
+from bs4 import BeautifulSoup
 from rich.console import Console
 
 
@@ -43,11 +42,11 @@ def title_search(title_search: str) -> int:
     media_search_manager.clear()
     table_show_manager.clear()
 
-    search_url = f"{site_constant.FULL_URL}/api/search?q={title_search}"
+    search_url = f"{site_constant.FULL_URL}/?story={title_search}&do=search&subaction=search"
     console.print(f"[cyan]Search url: [yellow]{search_url}")
 
     try:
-        response = httpx.get(search_url, headers={'user-agent': get_userAgent()}, timeout=max_timeout, follow_redirects=True)
+        response = httpx.post(search_url, headers={'user-agent': get_userAgent()}, timeout=max_timeout, follow_redirects=True)
         response.raise_for_status()
 
     except Exception as e:
@@ -60,36 +59,35 @@ def title_search(title_search: str) -> int:
     if site_constant.TELEGRAM_BOT:
         choices = []
 
-    # Collect json data
-    try:
-        data = response.json().get('data', [])
-    except Exception as e:
-        console.log(f"Error parsing JSON response: {e}")
-        return 0
+    # Create soup istance
+    soup = BeautifulSoup(response.text, "html.parser")
 
-    for i, dict_title in enumerate(data):
-        try:
-            media_search_manager.add_media({
-                'id': dict_title.get('id'),
-                'slug': dict_title.get('slug'),
-                'name': dict_title.get('name'),
-                'type': dict_title.get('type'),
-                'date': dict_title.get('last_air_date'),
-                'score': dict_title.get('score')
-            })
+    # Collect data from soup
+    for i, movie_div in enumerate(soup.find_all("div", class_="movie")):
 
-            if site_constant.TELEGRAM_BOT:
-                choice_text = f"{i} - {dict_title.get('name')} ({dict_title.get('type')}) - {dict_title.get('last_air_date')}"
-                choices.append(choice_text)
-            
-        except Exception as e:
-            print(f"Error parsing a film entry: {e}")
-            if site_constant.TELEGRAM_BOT:
-                bot.send_message(f"ERRORE\n\nErrore nell'analisi del film:\n\n{e}", None)
-	
+        title_tag = movie_div.find("h2", class_="movie-title")
+        title = title_tag.find("a").get_text(strip=True)
+        url = title_tag.find("a").get("href")
+
+        # Define typo
+        if "/serie-tv/" in url:
+            tipo = "tv"
+        else:
+            tipo = "film"
+
+        media_search_manager.add_media({
+            'url': url,
+            'name': title,
+            'type': tipo
+        })
+
+        if site_constant.TELEGRAM_BOT:
+            choice_text = f"{i} - {title} ({tipo})"
+            choices.append(choice_text)
+
     if site_constant.TELEGRAM_BOT:
         if choices:
             bot.send_message(f"Lista dei risultati:", choices)
-          
+	
     # Return the number of titles found
     return media_search_manager.get_length()

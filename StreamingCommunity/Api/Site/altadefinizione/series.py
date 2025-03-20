@@ -1,4 +1,4 @@
-# 3.12.23
+# 16.03.25
 
 import os
 from typing import Tuple
@@ -12,7 +12,8 @@ from rich.prompt import Prompt
 # Internal utilities
 from StreamingCommunity.Util.message import start_message
 from StreamingCommunity.Lib.Downloader import HLS_Downloader
-from StreamingCommunity.TelegramHelp.telegram_bot import TelegramSession, get_bot_instance
+from StreamingCommunity.TelegramHelp.telegram_bot import get_bot_instance, TelegramSession
+
 
 # Logic class
 from .util.ScrapeSerie import GetSerieInfo
@@ -29,7 +30,7 @@ from StreamingCommunity.Api.Template.Class.SearchType import MediaItem
 
 
 # Player
-from StreamingCommunity.Api.Player.vixcloud import VideoSource
+from StreamingCommunity.Api.Player.supervideo import VideoSource
 
 
 # Variable
@@ -37,7 +38,7 @@ msg = Prompt()
 console = Console()
 
 
-def download_video(index_season_selected: int, index_episode_selected: int, scrape_serie: GetSerieInfo, video_source: VideoSource) -> Tuple[str,bool]:
+def download_video(index_season_selected: int, index_episode_selected: int, scrape_serie: GetSerieInfo) -> Tuple[str,bool]:
     """
     Download a single episode video.
 
@@ -52,15 +53,8 @@ def download_video(index_season_selected: int, index_episode_selected: int, scra
     start_message()
     index_season_selected = dynamic_format_number(str(index_season_selected))
 
-    # SPECIAL: Get season number
-    season = None
-    for s in scrape_serie.seasons_manager.seasons:
-        if s.number == int(index_season_selected):
-            season = s
-            break
-
     # Get info about episode
-    obj_episode = season.episodes.get(index_episode_selected - 1)
+    obj_episode = scrape_serie.seasons_manager.get_season_by_number(int(index_season_selected)).episodes.get(index_episode_selected-1)
     console.print(f"[yellow]Download: [red]{index_season_selected}:{index_episode_selected} {obj_episode.name}")
     print()
 
@@ -83,8 +77,8 @@ def download_video(index_season_selected: int, index_episode_selected: int, scra
     mp4_path = os.path.join(site_constant.SERIES_FOLDER, scrape_serie.series_name, f"S{index_season_selected}")
 
     # Retrieve scws and if available master playlist
-    video_source.get_iframe(obj_episode.id)
-    video_source.get_content()
+    video_source = VideoSource(obj_episode.url)
+    video_source.make_request(obj_episode.url)
     master_playlist = video_source.get_playlist()
 
     # Download the episode
@@ -98,8 +92,9 @@ def download_video(index_season_selected: int, index_episode_selected: int, scra
         except: pass
 
     return r_proc['path'], r_proc['stopped']
+    
 
-def download_episode(index_season_selected: int, scrape_serie: GetSerieInfo, video_source: VideoSource, download_all: bool = False) -> None:
+def download_episode(index_season_selected: int, scrape_serie: GetSerieInfo, download_all: bool = False) -> None:
     """
     Download episodes of a selected season.
 
@@ -108,21 +103,14 @@ def download_episode(index_season_selected: int, scrape_serie: GetSerieInfo, vid
         - download_all (bool): Download all episodes in the season.
     """
     start_message()
-    scrape_serie.collect_info_season(index_season_selected)
-    
-    # SPECIAL: Get season number
-    season = None
-    for s in scrape_serie.seasons_manager.seasons:
-        if s.number == index_season_selected:
-            season = s
-            break
-    episodes_count = len(season.episodes.episodes)
+    obj_episodes = scrape_serie.seasons_manager.get_season_by_number(index_season_selected).episodes
+    episodes_count = len(obj_episodes.episodes)
 
     if download_all:
 
         # Download all episodes without asking
         for i_episode in range(1, episodes_count + 1):
-            path, stopped = download_video(index_season_selected, i_episode, scrape_serie, video_source)
+            path, stopped = download_video(index_season_selected, i_episode, scrape_serie)
 
             if stopped:
                 break
@@ -132,7 +120,7 @@ def download_episode(index_season_selected: int, scrape_serie: GetSerieInfo, vid
     else:
 
         # Display episodes list and manage user selection
-        last_command = display_episodes_list(season.episodes.episodes)
+        last_command = display_episodes_list(obj_episodes.episodes)
         list_episode_select = manage_selection(last_command, episodes_count)
 
         try:
@@ -143,7 +131,7 @@ def download_episode(index_season_selected: int, scrape_serie: GetSerieInfo, vid
 
         # Download selected episodes if not stopped
         for i_episode in list_episode_select:
-            path, stopped = download_video(index_season_selected, i_episode, scrape_serie, video_source)
+            path, stopped = download_video(index_season_selected, i_episode, scrape_serie)
 
             if stopped:
                 break
@@ -154,24 +142,17 @@ def download_series(select_season: MediaItem) -> None:
 
     Parameters:
         - select_season (MediaItem): Selected media item (TV series).
-        - domain (str): Domain from which to download.
     """
     if site_constant.TELEGRAM_BOT:
         bot = get_bot_instance()
 
-    # Start message and set up video source
     start_message()
 
     # Init class
-    scrape_serie = GetSerieInfo(site_constant.FULL_URL)
-    video_source = VideoSource(site_constant.FULL_URL, True)
-
-    # Setup video source
-    scrape_serie.setup(select_season.id, select_season.slug)
-    video_source.setup(select_season.id)
+    scrape_serie = GetSerieInfo(select_season.url)
 
     # Collect information about seasons
-    scrape_serie.collect_info_title()
+    scrape_serie.collect_season()
     seasons_count = len(scrape_serie.seasons_manager)
 
     # Prompt user for season selection and download episodes
@@ -207,26 +188,17 @@ def download_series(select_season: MediaItem) -> None:
     except ValueError as e:
         console.print(f"[red]{str(e)}")
         return
-
+    
     # Loop through the selected seasons and download episodes
     for i_season in list_season_select:
-
-        # SPECIAL: Get season number
-        season = None
-        for s in scrape_serie.seasons_manager.seasons:
-            if s.number == i_season:
-                season = s
-                break
-        season_number = season.number
-
         if len(list_season_select) > 1 or index_season_selected == "*":
 
             # Download all episodes if multiple seasons are selected or if '*' is used
-            download_episode(season_number, scrape_serie, video_source, download_all=True)
+            download_episode(i_season, scrape_serie, download_all=True)
         else:
 
             # Otherwise, let the user select specific episodes for the single season
-            download_episode(season_number, scrape_serie, video_source, download_all=False)
+            download_episode(i_season, scrape_serie, download_all=False)
 
     if site_constant.TELEGRAM_BOT:
         bot.send_message(f"Finito di scaricare tutte le serie e episodi", None)

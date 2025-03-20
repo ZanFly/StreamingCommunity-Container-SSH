@@ -1,7 +1,8 @@
-# 21.05.24
+# 16.03.25
 
 import sys
 import subprocess
+from urllib.parse import quote_plus
 
 
 # External library
@@ -17,16 +18,16 @@ from StreamingCommunity.TelegramHelp.telegram_bot import get_bot_instance
 
 
 # Logic class
-from .site import title_search, media_search_manager, table_show_manager
-from .film_serie import download_film, download_series
-
+from .site import title_search, table_show_manager, media_search_manager
+from .film import download_film
+from .series import download_series
 
 # Variable
-indice = 1
-_useFor = "anime"
+indice = 2
+_useFor = "film_serie"
 _deprecate = False
-_priority = 2
-_engineDownload = "mp4"
+_priority = 1
+_engineDownload = "hls"
 
 msg = Prompt()
 console = Console()
@@ -60,7 +61,10 @@ def process_search_result(select_title):
     """
     Handles the search result and initiates the download for either a film or series.
     """
-    download_series(select_title)
+    if select_title.type == 'tv':
+        download_series(select_title)
+    else:
+        download_film(select_title)
 
 def search(string_to_search: str = None, get_onlyDatabase: bool = False, direct_item: dict = None):
     """
@@ -68,31 +72,31 @@ def search(string_to_search: str = None, get_onlyDatabase: bool = False, direct_
 
     Parameters:
         string_to_search (str, optional): String to search for
-        get_onlyDatabase (bool, optional): If True, return only the database object
+        get_onylDatabase (bool, optional): If True, return only the database object
         direct_item (dict, optional): Direct item to process (bypass search)
     """
     if direct_item:
         select_title = MediaItem(**direct_item)
         process_search_result(select_title)
         return
-
+    
     # Get the user input for the search term
     string_to_search = get_user_input(string_to_search)
-
+    
     # Perform the database search
-    len_database = title_search(string_to_search)
+    len_database = title_search(quote_plus(string_to_search))
 
-    ##If only the database is needed, return the manager
+    # If only the database is needed, return the manager
     if get_onlyDatabase:
         return media_search_manager
     
     if site_constant.TELEGRAM_BOT:
         bot = get_bot_instance()
-
+        
     if len_database > 0:
         select_title = get_select_title(table_show_manager, media_search_manager)
         process_search_result(select_title)
-
+    
     else:
         console.print(f"\n[red]Nothing matching was found for[white]: [purple]{string_to_search}")
 

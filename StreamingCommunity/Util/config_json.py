@@ -196,6 +196,7 @@ class ConfigManager:
         except Exception as e:
             logging.error(f"Error reading configuration file: {e}")
             console.print(f"[bold red]Failed to read configuration:[/bold red] {str(e)}")
+            sys.exit(0)
 
     def download_requirements(self, url: str, filename: str) -> None:
         """
@@ -255,14 +256,7 @@ class ConfigManager:
                             sites_info = []
                             for site, info in examples:
                                 sites_info.append(f"[cyan]{site}[/cyan]: {info.get('full_url', 'N/A')}")
-                            
-                            console.print("[bold cyan]Sample sites:[/bold cyan]")
-                            for info in sites_info:
-                                console.print(f"  {info}")
-                            
-                            if site_count > 3:
-                                console.print(f"  ... and {site_count - 3} more")
-                                
+
                     else:
                         console.print("[bold yellow]API returned empty data set[/bold yellow]")
                 else:
@@ -420,9 +414,6 @@ class ConfigManager:
 
 config_manager = ConfigManager()
 config_manager.read_config()
-
-
-import sys
 
 def get_use_large_bar():
     """
