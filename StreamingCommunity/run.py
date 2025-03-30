@@ -254,8 +254,18 @@ def main(script_id = 0):
     }
 
     # Add dynamic arguments based on loaded search modules
+    used_short_options = set()
+
     for alias, (_, use_for) in search_functions.items():
         short_option = alias[:3].upper()
+    
+        original_short_option = short_option
+        count = 1
+        while short_option in used_short_options:
+            short_option = f"{original_short_option}{count}"
+            count += 1
+    
+        used_short_options.add(short_option)
         long_option = alias
         parser.add_argument(f'-{short_option}', f'--{long_option}', action='store_true', help=f'Search for {alias.split("_")[0]} on streaming platforms.')
 
@@ -286,7 +296,7 @@ def main(script_id = 0):
         section, option = key.split('.')
         config_manager.set_key(section, option, value)
 
-    config_manager.write_config()
+    config_manager.save_config()
 
     # Check if global search is requested
     if getattr(args, 'global'):
